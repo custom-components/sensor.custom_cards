@@ -26,27 +26,24 @@ class CustomCards(Entity):
     def __init__(self, www_dir, lovelace_config):
         """Initialize the sensor."""
         self._state = None
-        self._attributes = None
+        self._attributes = {}
         self._www_dir = www_dir
         self._lovelace_config = lovelace_config
         self.update()
 
     def update(self):
         """Method to update sensor value"""
-        attr = []
         cards = cc.get_installed_cards(self._www_dir, self._lovelace_config)
         if cards != None:
             for card in cards:
                 localversion = cc.get_local_version(card, self._lovelace_config)
                 remoteversion = cc.get_remote_version(card)
                 value = {
-                    "name": card,
                     "update": str(localversion != False and remoteversion != False and remoteversion != localversion),
                     "version": str(remoteversion),
                     "installed": str(localversion),
                 }
-                attr.append(value)
-        self._attributes = attr
+                self._attributes[card] = value
         self._state = 'Active'
 
     @property
@@ -62,6 +59,4 @@ class CustomCards(Entity):
     @property
     def device_state_attributes(self):
         """Return attributes for the sensor."""
-        return {
-            'attr': self._attributes
-            }
+        return self._attributes
