@@ -8,11 +8,11 @@ import json
 from datetime import timedelta
 from homeassistant.helpers.entity import Entity
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 DEPENDENCIES = ['custom_cards']
 
-INTERVAL = timedelta(seconds=60)
+SCAN_INTERVAL = timedelta(seconds=60)
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Create the sensor"""
