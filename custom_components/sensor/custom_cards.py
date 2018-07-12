@@ -4,10 +4,11 @@ Get updates about your custom_cards.
 For more details about this component, please refer to the documentation at
 https://github.com/custom-components/custom_cards
 """
+import json
 from datetime import timedelta
 from homeassistant.helpers.entity import Entity
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 DEPENDENCIES = ['custom_cards']
 
@@ -33,18 +34,15 @@ class CustomCards(Entity):
         """Method to update sensor value"""
         import custom_components.custom_cards as cc
         attr = []
-        cards = cc.get_installed_cards(self._www_dir)
+        cards = cc.get_installed_cards(self._www_dir, self._lovelace_config)
         if cards != None:
             for card in cards:
                 localversion = cc.get_local_version(card, self._lovelace_config)
-                if localversion != False:
-                    remoteversion = cc.get_remote_version(card)
-                    if remoteversion != False:
-                        if localversion != remoteversion:
-                            update_avaiable = 'true'
-                        else:
-                            update_avaiable = 'false'
-
+                remoteversion = cc.get_remote_version(card)
+                if localversion != False and remoteversion != False and remoteversion > localversion:
+                    update_avaiable = 'true'
+                else:
+                    update_avaiable = 'false'
                 value = card + ": {'update': " + update_avaiable + ", 'version': " + remoteversion + ", 'installed': " + localversion + "}"
                 attr.append(value)
         self._attributes = attr
