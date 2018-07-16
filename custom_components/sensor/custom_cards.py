@@ -4,57 +4,56 @@ Get updates about your custom_cards.
 For more details about this component, please refer to the documentation at
 https://github.com/custom-components/sensor.custom_cards
 """
+import logging
+import time
 from datetime import timedelta
 from homeassistant.helpers.entity import Entity
+from custom_components.custom_cards import DATA_CC, SIGNAL_SENSOR_UPDATE
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 import custom_components.custom_cards as cc
 
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 
 DEPENDENCIES = ['custom_cards']
 
 SCAN_INTERVAL = timedelta(seconds=60)
+_LOGGER = logging.getLogger(__name__)
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Create the sensor"""
-    www_dir = str(hass.config.path("www/"))
-    lovelace_config = str(hass.config.path("ui-lovelace.yaml"))
-    add_devices([CustomCards(www_dir, lovelace_config)])
+    _LOGGER.info('Sensor %s version %s is starting', __version__, __name__.split('.')[1])
+    add_devices([CustomCards(hass)])
 
 class CustomCards(Entity):
     """Representation of a Sensor."""
 
-    def __init__(self, www_dir, lovelace_config):
+    def __init__(self, hass):
         """Initialize the sensor."""
-        self._state = None
-        self._attributes = {}
-        self._www_dir = www_dir
-        self._lovelace_config = lovelace_config
-        self.update()
+        self.hass = hass
+        self._state = time.time()
+        self._attributes = self.hass.data[DATA_CC]
 
-    def update(self):
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+        async_dispatcher_connect(
+            self.hass, SIGNAL_SENSOR_UPDATE, self._update_callback)
+
+    def _update_callback(self):
         """Method to update sensor value"""
-        cards = cc.get_installed_cards(self._www_dir, self._lovelace_config)
-        if cards != None:
-            for card in cards:
-                localversion = cc.get_local_version(card, self._lovelace_config)
-                remoteversion = cc.get_remote_version(card)
-                value = {
-                    "update": str(localversion != False and remoteversion != False and remoteversion != localversion),
-                    "version": str(remoteversion),
-                    "installed": str(localversion),
-                }
-                self._attributes[card] = value
-        self._state = 'Active'
+        self._attributes = self.hass.data[DATA_CC]
+        self._state = time.time()
+        _LOGGER.debug('Sensor update for signal %s', self._attributes)
+        self.async_schedule_update_ha_state(True)
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return 'Custom_card Tracker'
+        return 'Custom Card Tracker'
 
     @property
     def state(self):
         """Return the state of the sensor."""
-        return 'Active'
+        return self._state
 
     @property
     def device_state_attributes(self):
